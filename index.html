@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>翻翻乐大作战</title>
+<style>
+/* CSS变量 */
+:root {
+    --bg-page: #edf1eb;
+    --bg-box: #89cc89;
+    --bg-slot: #70b970;
+    --bg-card: #523c94;
+    --border-card: #ffdd33;
+    --card-open-bg: #ffffff;
+    --card-open-text: #111111;
+    --card-gone-bg: #b8b8b8;
+    --card-gone-border: #d0d0d0;
+    --text-dark: #222;
+    --btn-bg: #308c30;
+    --btn-hover: #267226;
+    --label-bg: rgba(0,0,0,0.35);
+    --slot-active-shadow: rgba(255,255,255,0.8);
+    --preview-bg: rgba(0,0,0,0.7);
+    --start-btn-bg: #ff8c00;
+    --start-btn-hover: #e07b00;
+    --start-btn-font-size: 22px;
+}
+
+[data-theme="forest"] {
+    --bg-page: #e2f0d9;
+    --bg-box: #6b8e23;
+    --bg-slot: #556b2f;
+    --bg-card: #2f4f2f;
+    --border-card: #cd853f;
+    --card-open-bg: #f5f5dc;
+    --card-open-text: #2f4f2f;
+    --card-gone-bg: #a9a9a9;
+    --card-gone-border: #c0c0c0;
+    --text-dark: #1a3c1a;
+    --btn-bg: #2e8b57;
+    --btn-hover: #3cb371;
+    --start-btn-bg: #cc7000;
+    --start-btn-hover: #b06000;
+    --start-btn-font-size: 22px;
+}
+[data-theme="ocean"] {
+    --bg-page: #e0f0f5;
+    --bg-box: #4a90d9;
+    --bg-slot: #2c5f8a;
+    --bg-card: #1c3d5a;
+    --border-card: #f0c040;
+    --card-open-bg: #e0f7fa;
+    --card-open-text: #1c3d5a;
+    --card-gone-bg: #aaaaaa;
+    --card-gone-border: #cccccc;
+    --text-dark: #0a2a3a;
+    --btn-bg: #00688b;
+    --btn-hover: #008bb8;
+    --start-btn-bg: #ff8c00;
+    --start-btn-hover: #e07b00;
+    --start-btn-font-size: 22px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{background:var(--bg-page);padding:20px 12px;display:flex;flex-direction:column;align-items:center;color:var(--text-dark)}
+h1{margin-bottom:14px;font-size:28px;font-weight:600;color:var(--text-dark)}
+
+/* 设置面板 */
+.setup-panel{
+    background:#fff;padding:14px 22px;border-radius:14px;margin-bottom:16px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px #00000012;
+}
+.setup-panel.hidden{opacity:0;pointer-events:none;height:0;overflow:hidden;margin-bottom:0;padding:0}
+.setup-panel select,.setup-panel input[type="number"],.setup-panel input[type="text"]{padding:7px 12px;font-size:16px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333}
+.setup-panel button{padding:8px 18px;font-size:16px;border:none;border-radius:8px;background:var(--btn-bg);color:white;cursor:pointer;transition:0.2s}
+.setup-panel button:hover{background:var(--btn-hover)}
+.setup-panel label{display:flex;align-items:center;gap:6px;font-size:16px;cursor:pointer;user-select:none}
+.setup-panel input[type="checkbox"]{width:18px;height:18px;cursor:pointer}
+.preview-seconds-input{width:60px;padding:6px 8px;text-align:center}
+.preview-seconds-input:disabled{background:#f0f0f0;color:#999}
+
+/* 玩家名称输入区域 */
+.player-names-container{
+    display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center;
+    background:#f9f9f9;padding:8px 12px;border-radius:8px;width:100%;
+}
+.player-name-item{
+    display:flex;align-items:center;gap:6px;font-size:15px;
+}
+.player-name-item input{
+    width:100px;padding:5px 8px;font-size:15px;border:1px solid #ccc;border-radius:6px;
+}
+
+/* 主棋盘外框 */
+.oct-box{
+    position:relative;background:var(--bg-box);border-radius:26px;padding:32px 16px;
+    max-width:680px;width:100%;margin:50px 0;box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* 四角玩家卡槽 */
+.player-slot{
+    position:absolute;width:96px;height:140px;background:var(--bg-slot);border-radius:16px;
+    display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
+    padding:8px 6px;pointer-events:none;overflow:hidden;
+    transition: opacity 0.3s, background-color 0.3s;box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.slot-label{font-size:17px;color:#fff;font-weight:bold;text-align:center;line-height:1.5;text-shadow:0 2px 4px rgba(0,0,0,0.5);z-index:10;white-space:pre-line;font-family:'Comic Sans MS','Chalkboard SE','Segoe UI Emoji',sans-serif;background:var(--label-bg);padding:3px 10px;border-radius:20px;display:inline-block;letter-spacing:0.5px}
+.slot-active .slot-label{color:#fff;background:rgba(0,0,0,0.7);text-shadow:0 1px 3px rgba(0,0,0,0.6);box-shadow:0 0 12px var(--slot-active-shadow)}
+.slot-p1{top:-28px;left:-28px;transform:rotate(-32deg)}
+.slot-p1 .slot-label{transform:rotate(32deg)}
+.slot-p2{top:-28px;right:-28px;transform:rotate(32deg)}
+.slot-p2 .slot-label{transform:rotate(-32deg)}
+.slot-p3{bottom:-28px;right:-28px;transform:rotate(-32deg)}
+.slot-p3 .slot-label{transform:rotate(32deg)}
+.slot-p4{bottom:-28px;left:-28px;transform:rotate(32deg)}
+.slot-p4 .slot-label{transform:rotate(-32deg)}
+
+/* 收集卡牌 */
+.gained-card{
+    width:36px;height:36px;background:#fff;border:2px solid var(--border-card);border-radius:7px;
+    position:absolute;color:#111;font-size:20px;display:flex;align-items:center;justify-content:center;
+    transition: all 0.45s ease-out;bottom:55px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* 棋盘 */
+.row{display:flex;gap:8px;justify-content:center;margin:5px 0}
+.card{
+    width:52px;height:52px;background:var(--bg-card);border-radius:11px;border:3px solid var(--border-card);
+    display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;user-select:none;
+    transition:transform 0.24s ease, background-color 0.3s, opacity 0.4s;box-shadow:0 2px 4px rgba(0,0,0,0.15);
+    cursor:inherit;position:relative;
+}
+.card .card-front,.card .card-back{position:absolute;width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:11px}
+.card .card-front{background:var(--bg-card);color:#fff;font-size:28px}
+.card .card-back{background:var(--card-open-bg);color:var(--card-open-text);font-size:28px;display:none}
+.card.open .card-front{display:none}
+.card.open .card-back{display:flex}
+.card:hover:not(.open):not(.gone):not(.void){transform:scale(1.07);filter:brightness(1.18)}
+.card.open{animation:pop 0.2s ease}
+.card.gone{opacity:0.25;pointer-events:none;background:var(--card-gone-bg);border-color:var(--card-gone-border);visibility:visible}
+.card.gone .card-front,.card.gone .card-back{display:none}
+.card.void{background:#a3c9a3;border-color:#b7d8b7;cursor:default!important;opacity:0.4}
+
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+/* 底部按钮区域 */
+.btns{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.btns button{padding:10px 26px;font-size:17px;border:none;border-radius:10px;background:var(--btn-bg);color:white;cursor:pointer;transition:0.2s}
+.btns button:hover{background:var(--btn-hover)}
+.theme-btn{background:#555!important}
+/* 开始对局按钮特殊样式 */
+.start-game-btn{
+    background:var(--start-btn-bg) !important;
+    font-size: var(--start-btn-font-size) !important;
+    padding: 12px 32px !important;
+}
+.start-game-btn:hover{
+    background:var(--start-btn-hover) !important;
+}
+
+/* 当前玩家提示 */
+.current-player-indicator{
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+    text-shadow:0 2px 4px rgba(0,0,0,0.3);
+    margin-bottom:4px;
+    min-height:32px;
+    letter-spacing:0.5px;
+}
+
+/* 计时显示区域 */
+.timer-display{
+    margin-top:16px;
+    background: rgba(255,255,255,0.9);
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    color: #333;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    max-width: 680px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.timer-display span{
+    white-space: nowrap;
+}
+
+/* 音乐开关按钮 */
+.music-toggle-btn{
+    background:#8e44ad !important;
+}
+.music-toggle-btn.playing{
+    background:#27ae60 !important;
+}
+
+/* 弹窗 */
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-box{background:white;padding:28px 36px;border-radius:16px;text-align:center;box-shadow:0 4px 20px #00000026;max-width:90vw}
+.modal-box h2{margin-bottom:16px;color:#222}
+.modal-box button{margin-top:16px;padding:9px 24px;border:none;border-radius:8px;background:var(--btn-bg);color:white;cursor:pointer}
+.hide{display:none!important}
+
+/* 预览倒计时 */
+.preview-countdown{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    background:var(--preview-bg);color:#fff;font-size:20px;font-weight:bold;
+    padding:4px 16px;border-radius:16px;z-index:15;pointer-events:none;
+    text-shadow:0 0 8px rgba(255,255,255,0.4);box-shadow:0 2px 6px rgba(0,0,0,0.2);
+    white-space:nowrap;
+}
+
+/* 竖屏手机优化 */
+@media (max-width:480px) {
+    body { padding: 12px 6px; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+
+    .setup-panel { padding: 10px 12px; gap: 8px; margin-bottom: 8px; }
+    .setup-panel select, .setup-panel input[type="number"], .setup-panel input[type="text"] { padding: 6px 8px; font-size: 14px; }
+    .setup-panel label { font-size: 14px; }
+    .preview-seconds-input { width: 50px; }
+    .player-name-item input { width: 70px; font-size: 14px; }
+    .player-names-container { gap: 6px; padding: 6px 8px; }
+
+    .oct-box { padding: 18px 6px; margin: 30px 0; border-radius: 18px; }
+    .player-slot { width: 58px; height: 78px; padding: 3px; border-radius: 10px; }
+    .slot-label { font-size: 12px; padding: 2px 5px; border-radius: 10px; }
+    .slot-p1 { top: -14px; left: -8px; transform: rotate(-15deg); }
+    .slot-p1 .slot-label { transform: rotate(15deg); }
+    .slot-p2 { top: -14px; right: -8px; transform: rotate(15deg); }
+    .slot-p2 .slot-label { transform: rotate(-15deg); }
+    .slot-p3 { bottom: -14px; right: -8px; transform: rotate(-15deg); }
+    .slot-p3 .slot-label { transform: rotate(15deg); }
+    .slot-p4 { bottom: -14px; left: -8px; transform: rotate(15deg); }
+    .slot-p4 .slot-label { transform: rotate(-15deg); }
+
+    .gained-card { width: 26px; height: 26px; font-size: 15px; bottom: 32px; border-width: 1.5px; }
+    .row { gap: 3px; margin: 2px 0; }
+    .card { width: 30px; height: 30px; font-size: 17px; border-radius: 5px; border-width: 2px; }
+    .card .card-front, .card .card-back { font-size: 17px; border-radius: 5px; }
+
+    .btns { gap: 6px; margin-top: 8px; }
+    .btns button { padding: 8px 14px; font-size: 14px; }
+    .start-game-btn { font-size: 18px !important; padding: 10px 20px !important; }
+    .current-player-indicator { font-size: 18px; }
+    .timer-display { font-size: 12px; padding: 6px 10px; gap: 6px; }
+    .preview-countdown { font-size: 14px; padding: 3px 10px; }
+}
+
+/* 横屏优化 */
+@media (orientation: landscape) and (max-height:500px){
+    body{padding:8px}
+    h1{margin-bottom:8px;font-size:22px}
+    .setup-panel{padding:8px 16px;gap:8px;margin-bottom:8px}
+    .oct-box{padding:16px 8px;margin:24px 0;border-radius:18px;max-width:700px}
+    .player-slot{width:68px;height:90px;padding:4px;border-radius:12px}
+    .slot-label{font-size:12px;padding:2px 6px;border-radius:12px}
+    .slot-p1{top:-12px;left:-12px;transform:rotate(-15deg)}.slot-p1 .slot-label{transform:rotate(15deg)}
+    .slot-p2{top:-12px;right:-12px;transform:rotate(15deg)}.slot-p2 .slot-label{transform:rotate(-15deg)}
+    .slot-p3{bottom:-12px;right:-12px;transform:rotate(-15deg)}.slot-p3 .slot-label{transform:rotate(15deg)}
+    .slot-p4{bottom:-12px;left:-12px;transform:rotate(15deg)}.slot-p4 .slot-label{transform:rotate(-15deg)}
+    .gained-card{width:28px;height:28px;font-size:16px;bottom:34px;border-width:1.5px}
+    .row{gap:4px;margin:3px 0}
+    .card{width:32px;height:32px;font-size:18px;border-radius:6px;border-width:2px}
+    .card .card-front,.card .card-back{font-size:18px}
+    .preview-countdown{font-size:16px;padding:3px 12px;top:0}
+    .start-game-btn{font-size:20px !important;padding:10px 24px !important;}
+    .current-player-indicator{font-size:20px;}
+}
+</style>
+</head>
+<body data-theme="default">
+<h1>翻翻乐大作战</h1>
+
+<div class="setup-panel" id="setupPanel">
+    <span>玩家数量</span>
+    <select id="playerCountSel" onchange="updatePlayerNameInputs()">
+        <option value="2">2人</option>
+        <option value="1">1人</option>
+        <option value="3">3人</option>
+        <option value="4">4人</option>
+    </select>
+    <span>难度</span>
+    <select id="diffSel">
+        <option value="easy">简单（8对）</option>
+        <option value="normal">普通（14对）</option>
+        <option value="hard">困难（18对）</option>
+        <option value="hell" selected>地狱（23对）</option>
+    </select>
+    <label><input type="checkbox" id="previewModeChk" checked onchange="togglePreviewSeconds()">预览模式</label>
+    <span>预览秒数</span>
+    <input type="number" id="previewSeconds" min="10" max="99" value="10">
+    <label><input type="checkbox" id="comboBonusChk">连击加分</label>
+
+    <!-- 玩家名称自定义 -->
+    <div class="player-names-container" id="playerNamesContainer">
+        <div class="player-name-item"><span>玩家1</span><input type="text" id="playerName1" value="玩家1"></div>
+        <div class="player-name-item"><span>玩家2</span><input type="text" id="playerName2" value="玩家2"></div>
+        <div class="player-name-item" style="display:none;"><span>玩家3</span><input type="text" id="playerName3" value="玩家3"></div>
+        <div class="player-name-item" style="display:none;"><span>玩家4</span><input type="text" id="playerName4" value="玩家4"></div>
+    </div>
+</div>
+
+<div class="oct-box">
+    <div class="player-slot slot-p1" id="slot1"><div class="slot-label"></div></div>
+    <div class="player-slot slot-p2" id="slot2"><div class="slot-label"></div></div>
+    <div class="player-slot slot-p3" id="slot3"><div class="slot-label"></div></div>
+    <div class="player-slot slot-p4" id="slot4"><div class="slot-label"></div></div>
+    <div id="previewCountdown" class="preview-countdown hide">预览倒计时 10</div>
+    <div id="boardWrap"></div>
+</div>
+
+<!-- 当前玩家提示 -->
+<div id="currentPlayerIndicator" class="current-player-indicator hide"></div>
+
+<!-- 计时显示区域 -->
+<div id="timerDisplay" class="timer-display hide"></div>
+
+<div class="btns">
+    <button id="mainActionBtn" class="start-game-btn" onclick="handleMainAction()">开始对局</button>
+    <button id="musicToggleBtn" class="music-toggle-btn" onclick="toggleMusic()">音乐：关</button>
+    <button class="theme-btn" onclick="cycleTheme()">切换主题</button>
+</div>
+
+<div class="modal-wrap hide" id="resultModal">
+    <div class="modal-box">
+        <h2>对局结束</h2>
+        <div id="modalText"></div>
+        <button onclick="closeModal()">确定</button>
+    </div>
+</div>
+
+<script>
+// ==================== 常量与状态 ====================
+const difficultyConfig = {
+    easy:   { pair: 8,  rows: [4,4,4,4] },
+    normal: { pair: 14, rows: [7,7,7,7] },
+    hard:   { pair: 18, rows: [6,6,6,6,6,6] },
+    hell:   { pair: 23, rows: [4,7,8,8,8,7,4] }
+};
+const animalList = ["🐰","🐦","🐶","🐱","🦊","🐸","🐻","🐼","🐨","🦁","🐯","🦆","🦋","🐿️","🐢","🦉","🐵","🐔","🦜","🐝","🦎","🐞","🦔"];
+
+const playerColors = {1:'#e74c3c',2:'#3498db',3:'#2ecc71',4:'#f39c12'};
+const slotRotations = {1:32, 2:-32, 3:32, 4:-32};
+
+let activePlayers = [];
+let playersData = [
+    {id:1, name:'玩家1', score:0, slotDomId:"slot1", color:playerColors[1], stats:{flips:0, matches:0}, turnStartTime:0, totalTime:0},
+    {id:2, name:'玩家2', score:0, slotDomId:"slot2", color:playerColors[2], stats:{flips:0, matches:0}, turnStartTime:0, totalTime:0},
+    {id:3, name:'玩家3', score:0, slotDomId:"slot3", color:playerColors[3], stats:{flips:0, matches:0}, turnStartTime:0, totalTime:0},
+    {id:4, name:'玩家4', score:0, slotDomId:"slot4", color:playerColors[4], stats:{flips:0, matches:0}, turnStartTime:0, totalTime:0}
+];
+let currentPlayerIndex = 0;
+let cardData = [];
+let openList = [];
+let lock = false;
+let previewInterval = null;
+let combo = 0;
+let gameStartTime = 0;
+let comboBonusEnabled = false;
+let gameInterval = null;
+let isPreviewing = false;
+let musicEnabled = false;
+let musicInterval = null;
+let musicStep = 0;
+
+// ==================== 背景音乐系统（羊了个羊风格） ====================
+const musicMelody = [
+    392, 523, 659, 784, 659, 523, 392, 440, 523, 659, 523, 440,
+    392, 523, 659, 784, 880, 784, 659, 523, 440, 392, 349, 330,
+    349, 392, 440, 523, 659, 784, 880, 1046, 880, 784, 659, 523,
+    440, 392, 440, 523, 659, 587, 523, 440, 392, 349, 330, 349
+];
+const musicDurations = [
+    0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,
+    0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.4,
+    0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25,
+    0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.4
+];
+const graceNotes = [659, 784, 880, 1046];
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+
+function playTone(freq=440, dur=0.1, type='sine', vol=0.3){
+    try{
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.value = vol;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    }catch(e){}
+}
+
+function startBackgroundMusic(){
+    if(musicInterval) return;
+    musicStep = 0;
+    playTone(523, 0.15, 'triangle', 0.15);
+    musicInterval = setInterval(() => {
+        if(musicStep >= musicMelody.length) musicStep = 0;
+        playTone(musicMelody[musicStep], musicDurations[musicStep], 'triangle', 0.12);
+        if(Math.random() < 0.3 && musicStep % 4 === 2){
+            const grace = graceNotes[Math.floor(Math.random() * graceNotes.length)];
+            playTone(grace, 0.1, 'sine', 0.08);
+        }
+        if(musicStep % 4 === 0){
+            const bassFreq = musicMelody[musicStep] / 2;
+            playTone(bassFreq, 0.3, 'sine', 0.06);
+        }
+        musicStep++;
+    }, 280);
+}
+
+function stopBackgroundMusic(){
+    if(musicInterval){
+        clearInterval(musicInterval);
+        musicInterval = null;
+    }
+}
+
+function toggleMusic(){
+    musicEnabled = !musicEnabled;
+    const btn = document.getElementById('musicToggleBtn');
+    if(musicEnabled){
+        startBackgroundMusic();
+        btn.innerText = '音乐：开';
+        btn.classList.add('playing');
+    } else {
+        stopBackgroundMusic();
+        btn.innerText = '音乐：关';
+        btn.classList.remove('playing');
+    }
+}
+
+// 游戏音效
+function playFlipSound(){ playTone(600,0.08,'sine',0.2); }
+function playMatchSound(){ playTone(800,0.15,'sine',0.3); setTimeout(()=>playTone(1000,0.15,'sine',0.3),100); }
+function playFailSound(){ playTone(200,0.2,'sawtooth',0.15); }
+
+// ==================== 工具函数 ====================
+function shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+    return a;
+}
+function updateCursor(){
+    if(activePlayers.length>0 && currentPlayerIndex<activePlayers.length){
+        const currId=activePlayers[currentPlayerIndex];
+        const color=playersData.find(p=>p.id===currId)?.color||'#000';
+        const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`;
+        const encoded=encodeURIComponent(svg);
+        document.body.style.cursor=`url("data:image/svg+xml,${encoded}") 16 16, auto`;
+    } else document.body.style.cursor='auto';
+}
+
+// ==================== 玩家名称输入框显示控制 ====================
+function updatePlayerNameInputs(){
+    const pCnt = Number(document.getElementById('playerCountSel').value);
+    for(let i=1;i<=4;i++){
+        const input = document.getElementById(`playerName${i}`);
+        if(input){
+            const item = input.parentElement;
+            if(item){
+                if(i<=pCnt){
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        }
+    }
+}
+
+// ==================== 计时器 ====================
+function startTurnForPlayer(){
+    const currId = activePlayers[currentPlayerIndex];
+    const player = playersData.find(p => p.id === currId);
+    if(player) player.turnStartTime = Date.now();
+}
+function endTurnForPlayer(){
+    const currId = activePlayers[currentPlayerIndex];
+    const player = playersData.find(p => p.id === currId);
+    if(player && player.turnStartTime){
+        player.totalTime += Date.now() - player.turnStartTime;
+        player.turnStartTime = 0;
+    }
+}
+
+// ==================== UI刷新 ====================
+function refreshAllSlotLabel(){
+    playersData.forEach(p=>{
+        const slotDom=document.getElementById(p.slotDomId);
+        const labelDom=slotDom.querySelector('.slot-label');
+        const isActive=activePlayers.includes(p.id);
+        const isTurn=activePlayers[currentPlayerIndex]===p.id;
+        slotDom.style.backgroundColor=isActive?p.color:'var(--bg-slot)';
+        slotDom.style.opacity=isActive?'1':'0.32';
+        let text = isActive ? `${p.name}\n分数:${p.score}` : `${p.name}\n未启用`;
+        if(isTurn && isActive && combo>0) {
+            text += `\n连击:${combo}🔥`;
+            if(comboBonusEnabled && combo>1) text += ` +${combo-1}分`;
+        }
+        labelDom.innerText=text;
+        if(isTurn&&isActive){slotDom.classList.add("slot-active");slotDom.style.boxShadow=`0 0 15px ${p.color}`}
+        else{slotDom.classList.remove("slot-active");slotDom.style.boxShadow='0 2px 6px rgba(0,0,0,0.15)'}
+    });
+    updateCursor();
+}
+function clearAllSlotCards(){
+    playersData.forEach(p=>{
+        const slotDom=document.getElementById(p.slotDomId);
+        const label=slotDom.querySelector('.slot-label');
+        while(slotDom.firstChild)slotDom.removeChild(slotDom.firstChild);
+        slotDom.appendChild(label);
+    });
+}
+function addCardToPlayerSlot(playerId,emoji){
+    const p=playersData.find(x=>x.id===playerId);
+    const slotDom=document.getElementById(p.slotDomId);
+    const offset=(p.score-1)*-4;
+    const rotation=slotRotations[playerId]||0;
+    const newCard=document.createElement('div');
+    newCard.className='gained-card';
+    newCard.innerText=emoji;
+    newCard.style.transform=`translateY(${offset}px) rotate(${rotation}deg)`;
+    slotDom.appendChild(newCard);
+}
+
+// ==================== 棋盘构建 ====================
+function buildBoard(rows){
+    const wrap=document.getElementById('boardWrap');
+    wrap.innerHTML='';
+    const totalPairs=rows.reduce((a,b)=>a+b,0)/2;
+    let cardsArr=[];
+    for(let i=0;i<totalPairs;i++){
+        const animal=animalList[i];
+        cardsArr.push({type:'animal', animal, points:1});
+        cardsArr.push({type:'animal', animal, points:1});
+    }
+    cardData=shuffle(cardsArr);
+    let dataIndex=0;
+    rows.forEach(rowCount=>{
+        const rowDiv=document.createElement('div');rowDiv.className='row';
+        for(let c=0;c<rowCount;c++){
+            const div=document.createElement('div');div.className='card';
+            if(dataIndex<cardData.length){
+                div.dataset.dataIndex=dataIndex;
+                div.innerHTML='<div class="card-front">?</div><div class="card-back"></div>';
+                dataIndex++;
+            } else div.classList.add('void');
+            rowDiv.appendChild(div);
+        }
+        wrap.appendChild(rowDiv);
+    });
+}
+
+// ==================== 游戏流程 ====================
+function handleMainAction(){
+    if(document.getElementById('setupPanel').classList.contains('hidden')){
+        endCurrentGame();
+    } else {
+        startGame();
+    }
+}
+
+function startGame(){
+    document.getElementById('setupPanel').classList.add('hidden');
+    const pCnt=Number(document.getElementById('playerCountSel').value);
+    const diffKey=document.getElementById('diffSel').value;
+    const config=difficultyConfig[diffKey];
+    const previewMode=document.getElementById('previewModeChk').checked;
+    comboBonusEnabled=document.getElementById('comboBonusChk').checked;
+    let previewSeconds=10;
+    if(previewMode){const v=Number(document.getElementById('previewSeconds').value);previewSeconds=(v>=10&&v<=99)?v:10}
+
+    for(let i=1;i<=4;i++){
+        const nameInput = document.getElementById(`playerName${i}`);
+        if(nameInput){
+            playersData[i-1].name = nameInput.value.trim() || `玩家${i}`;
+        }
+    }
+
+    activePlayers=[];
+    for(let i=1;i<=pCnt;i++)activePlayers.push(i);
+    playersData.forEach(p=>{p.score=0;p.stats={flips:0,matches:0};p.turnStartTime=0;p.totalTime=0});
+    currentPlayerIndex=0;openList=[];lock=false;combo=0;
+    gameStartTime=0;
+    isPreviewing = previewMode;
+    clearAllSlotCards();
+    refreshAllSlotLabel();
+    buildBoard(config.rows);
+
+    document.getElementById('mainActionBtn').innerText = '结束对局';
+    document.getElementById('currentPlayerIndicator').classList.add('hide');
+    document.getElementById('timerDisplay').classList.add('hide');
+
+    if(previewMode){
+        startPreview(previewSeconds);
+    } else {
+        startGameplayTimer();
+    }
+}
+
+function startGameplayTimer(){
+    gameStartTime = Date.now();
+    startTurnForPlayer();
+    document.getElementById('timerDisplay').classList.remove('hide');
+    document.getElementById('currentPlayerIndicator').classList.remove('hide');
+    updateTimerDisplay();
+    if(gameInterval) clearInterval(gameInterval);
+    gameInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function endCurrentGame(){
+    finishGame(true);
+}
+
+function checkGameEnd(){
+    const remain=document.querySelectorAll('.card:not(.gone):not(.void)');
+    if(remain.length===0){
+        finishGame(false);
+    }
+}
+
+function finishGame(manual){
+    if(gameInterval) {
+        clearInterval(gameInterval);
+        gameInterval = null;
+    }
+    if(!isPreviewing){
+        endTurnForPlayer();
+    } else {
+        if(previewInterval){clearInterval(previewInterval);previewInterval=null}
+        document.getElementById('previewCountdown').classList.add('hide');
+        isPreviewing = false;
+    }
+
+    const totalSeconds = gameStartTime ? Math.round((Date.now() - gameStartTime) / 1000) : 0;
+    const results=activePlayers.map(pid=>{
+        const pd=playersData.find(x=>x.id===pid);
+        if(activePlayers.length === 1){
+            pd.totalTime = totalSeconds * 1000;
+        }
+        return{pid, name:pd.name, score:pd.score, stats:pd.stats, totalTime:pd.totalTime};
+    });
+    const maxScore=Math.max(...results.map(r=>r.score));
+    const winners=results.filter(r=>r.score===maxScore).map(r=>r.name);
+    let msg=`最高分：${maxScore}<br>获胜：${winners.join('、')}<br><br>`;
+    msg += `总时长：${formatTime(totalSeconds)}<br><br>`;
+    results.forEach(r=>{
+        const timeStr = formatTime(Math.round(r.totalTime/1000));
+        const actualFlips = Math.floor(r.stats.flips / 2);
+        const successRate = actualFlips > 0 ? Math.round(r.stats.matches * 100 / actualFlips) : 0;
+        msg+=`${r.name}：得分${r.score}，时长${timeStr}，翻牌${actualFlips}次，成功${r.stats.matches}对，成功率${successRate}%<br>`;
+    });
+
+    showModal(msg);
+
+    document.getElementById('currentPlayerIndicator').classList.add('hide');
+    document.getElementById('timerDisplay').classList.add('hide');
+    document.getElementById('mainActionBtn').innerText = '开始对局';
+
+    if(musicEnabled){
+        stopBackgroundMusic();
+        musicEnabled = false;
+        const btn = document.getElementById('musicToggleBtn');
+        btn.innerText = '音乐：关';
+        btn.classList.remove('playing');
+    }
+
+    resetToSetup();
+}
+
+function resetToSetup(){
+    if(previewInterval){clearInterval(previewInterval);previewInterval=null}
+    document.getElementById('previewCountdown').classList.add('hide');
+
+    document.getElementById('boardWrap').innerHTML='';
+    clearAllSlotCards();
+
+    document.getElementById('setupPanel').classList.remove('hidden');
+
+    activePlayers=[];
+    playersData.forEach(p=>{
+        p.score=0;
+        p.stats={flips:0, matches:0};
+        p.turnStartTime=0;
+        p.totalTime=0;
+        const slotDom=document.getElementById(p.slotDomId);
+        const label=slotDom.querySelector('.slot-label');
+        label.innerText='';
+        slotDom.classList.remove('slot-active');
+        slotDom.style.boxShadow='0 2px 6px rgba(0,0,0,0.15)';
+    });
+    currentPlayerIndex=0;openList=[];lock=false;combo=0;
+    updateCursor();
+
+    document.getElementById('previewModeChk').checked = true;
+    document.getElementById('comboBonusChk').checked = false;
+    togglePreviewSeconds();
+    updatePlayerNameInputs();
+}
+
+function updateTimerDisplay(){
+    const displayEl = document.getElementById('timerDisplay');
+    const indicatorEl = document.getElementById('currentPlayerIndicator');
+    if(!displayEl || !indicatorEl) return;
+
+    if(activePlayers.length > 0 && currentPlayerIndex < activePlayers.length && !isPreviewing){
+        const currId = activePlayers[currentPlayerIndex];
+        const player = playersData.find(p => p.id === currId);
+        if(player){
+            indicatorEl.innerText = `轮到 ${player.name}`;
+            indicatorEl.style.color = player.color;
+            indicatorEl.classList.remove('hide');
+        } else {
+            indicatorEl.classList.add('hide');
+        }
+    } else {
+        indicatorEl.classList.add('hide');
+    }
+
+    if(isPreviewing || displayEl.classList.contains('hide')) return;
+    const totalSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+    let html = `<span>总时长：${formatTime(totalSeconds)}</span>`;
+    
+    if(activePlayers.length === 1){
+        const pid = activePlayers[0];
+        const p = playersData.find(x=>x.id===pid);
+        if(p){
+            html += `<span>${p.name}：${formatTime(totalSeconds)}</span>`;
+        }
+    } else {
+        activePlayers.forEach(pid=>{
+            const p = playersData.find(x=>x.id===pid);
+            if(p){
+                let currentTurnTime = 0;
+                if(activePlayers[currentPlayerIndex] === p.id && p.turnStartTime){
+                    currentTurnTime = Date.now() - p.turnStartTime;
+                }
+                const total = p.totalTime + currentTurnTime;
+                html += `<span>${p.name}：${formatTime(Math.floor(total/1000))}</span>`;
+            }
+        });
+    }
+    displayEl.innerHTML = html;
+}
+
+function formatTime(sec){
+    const m=Math.floor(sec/60);
+    const s=sec%60;
+    return m>0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
+// ==================== 预览模式 ====================
+function startPreview(seconds){
+    lock=true;
+    document.querySelectorAll('.card[data-data-index]').forEach(card=>{
+        const dataIndex=Number(card.dataset.dataIndex);
+        const data=cardData[dataIndex];
+        const back=card.querySelector('.card-back');
+        if(back) back.innerText=data.animal;
+        card.classList.add('open');
+    });
+    const countdownEl=document.getElementById('previewCountdown');
+    countdownEl.classList.remove('hide');
+    countdownEl.innerText = `预览倒计时 ${seconds}`;
+    if(previewInterval)clearInterval(previewInterval);
+    let remaining=seconds;
+    previewInterval=setInterval(()=>{
+        remaining--;
+        countdownEl.innerText = `预览倒计时 ${remaining}`;
+        if(remaining<=0){
+            clearInterval(previewInterval);previewInterval=null;
+            countdownEl.classList.add('hide');
+            document.querySelectorAll('.card[data-data-index]').forEach(card=>{
+                card.classList.remove('open');
+                card.querySelector('.card-back').innerText='';
+            });
+            lock=false;
+            isPreviewing = false;
+            startGameplayTimer();
+        }
+    },1000);
+}
+
+// ==================== 点击处理 ====================
+document.getElementById('boardWrap').addEventListener('click',(e)=>{
+    if(lock)return;
+    const cardEl=e.target.closest('.card');
+    if(!cardEl)return;
+    if(cardEl.classList.contains('open')||cardEl.classList.contains('gone')||cardEl.classList.contains('void'))return;
+    const dataIndex=Number(cardEl.dataset.dataIndex);
+    if(isNaN(dataIndex)||dataIndex>=cardData.length)return;
+    playFlipSound();
+    const data=cardData[dataIndex];
+    const back=cardEl.querySelector('.card-back');
+    back.innerText=data.animal;
+    cardEl.classList.add('open');
+    openList.push({el:cardEl,dataIndex});
+    playersData.find(p=>p.id===activePlayers[currentPlayerIndex]).stats.flips++;
+
+    if(openList.length===2){
+        lock=true;
+        const [c1,c2]=openList;
+        const currPlayerId=activePlayers[currentPlayerIndex];
+        const d1=cardData[c1.dataIndex], d2=cardData[c2.dataIndex];
+        const isMatch = d1.animal === d2.animal;
+        if(isMatch){
+            setTimeout(()=>{
+                playMatchSound();
+                c1.el.classList.add('gone');c1.el.innerText='';
+                c2.el.classList.add('gone');c2.el.innerText='';
+                const player=playersData.find(x=>x.id===currPlayerId);
+                let points = d1.points + d2.points;
+                if(comboBonusEnabled && combo>0){
+                    points += combo;
+                }
+                player.score += points;
+                player.stats.matches++;
+                addCardToPlayerSlot(currPlayerId, d1.animal);
+                combo++;
+                refreshAllSlotLabel();
+                openList=[];
+                lock=false;
+                checkGameEnd();
+            },450);
+        } else {
+            setTimeout(()=>{
+                playFailSound();
+                c1.el.classList.remove('open');
+                c1.el.querySelector('.card-back').innerText='';
+                c2.el.classList.remove('open');
+                c2.el.querySelector('.card-back').innerText='';
+                openList=[];
+                endTurnForPlayer();
+                if(activePlayers.length>1){
+                    currentPlayerIndex=(currentPlayerIndex+1)%activePlayers.length;combo=0;refreshAllSlotLabel();startTurnForPlayer();
+                } else {
+                    combo=0;
+                    refreshAllSlotLabel();
+                }
+                lock=false;
+            },850);
+        }
+    }
+});
+
+// ==================== 排行榜 ====================
+function saveLeaderboard(results){
+    try{
+        const key='flip_match_leaderboard';
+        let board=JSON.parse(localStorage.getItem(key)||'[]');
+        const entry={date:new Date().toLocaleString(),scores:results.map(r=>({name:r.name,score:r.score}))};
+        board.push(entry);
+        board=board.slice(-10);
+        localStorage.setItem(key,JSON.stringify(board));
+    }catch(e){}
+}
+
+// ==================== 弹窗 ====================
+function showModal(text){document.getElementById('modalText').innerHTML=text;document.getElementById('resultModal').classList.remove('hide')}
+function closeModal(){document.getElementById('resultModal').classList.add('hide')}
+
+// ==================== 主题切换 ====================
+let themeIndex=0;
+const themes=['default','forest','ocean'];
+function cycleTheme(){themeIndex=(themeIndex+1)%themes.length;document.body.dataset.theme=themes[themeIndex];}
+function togglePreviewSeconds(){
+    const chk=document.getElementById('previewModeChk');
+    const secInput=document.getElementById('previewSeconds');
+    secInput.disabled=!chk.checked;
+    if(chk.checked) secInput.focus();
+}
+
+// ==================== 键盘操作 ====================
+let focusedIndex=0;
+document.addEventListener('keydown',(e)=>{
+    if(lock||document.getElementById('setupPanel').classList.contains('hidden')===false)return;
+    const cards=document.querySelectorAll('.card[data-data-index]:not(.gone):not(.void)');
+    if(!cards.length)return;
+    if(e.key==='ArrowRight'||e.key==='d'){focusedIndex=(focusedIndex+1)%cards.length;cards[focusedIndex].focus();e.preventDefault()}
+    else if(e.key==='ArrowLeft'||e.key==='a'){focusedIndex=(focusedIndex-1+cards.length)%cards.length;cards[focusedIndex].focus();e.preventDefault()}
+    else if(e.key==='ArrowDown'||e.key==='s'){focusedIndex=(focusedIndex+7)%cards.length;cards[focusedIndex].focus();e.preventDefault()}
+    else if(e.key==='ArrowUp'||e.key==='w'){focusedIndex=(focusedIndex-7+cards.length)%cards.length;cards[focusedIndex].focus();e.preventDefault()}
+    else if(e.key==='Enter'||e.key===' '){cards[focusedIndex].click();e.preventDefault()}
+});
+
+// 初始化
+updateCursor();
+updatePlayerNameInputs();
+togglePreviewSeconds();
+</script>
+</body>
+</html>
